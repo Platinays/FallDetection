@@ -62,7 +62,7 @@ def identify_peak(accel_mat, n=1):
     mag_vec = calc_magnitude(accel_mat, n)
     return (np.amax(mag_vec), np.argmax(mag_vec))
 
-def identify_valley(accel_mat, n=1, peak_lead=25, peak_index=-1):
+def identify_valley_before_peak(accel_mat, n=1, peak_lead=25, peak_index=-1):
     '''
 
     :param accel_mat: 2D MATRIX, a series of 3-axial accel data, [[0, 1, 0], [1, 0, 0], ...]
@@ -70,7 +70,8 @@ def identify_valley(accel_mat, n=1, peak_lead=25, peak_index=-1):
     '''
     mag_vec = calc_magnitude(accel_mat, n)
     peak_index = identify_peak(accel_mat, n)[1]
-    return (np.amin(mag_vec[peak_index - peak_lead:peak_index]), np.argmin(mag_vec[peak_index - peak_lead:peak_index]))
+    return (np.amin(mag_vec[max(peak_index - peak_lead, 0):peak_index]),
+            np.argmin(mag_vec[max(peak_index - peak_lead, 0):peak_index]))
 
 
 def sample_around_peak(accel_mat, before=24, after=32):

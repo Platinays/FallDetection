@@ -1,14 +1,14 @@
 __author__ = 'Shuo Yu'
 
-# For some reason, the test performance on farseeing is not as good as the old hmm_correct script.
-# Use that for test
-
 from hmmlearn import hmm
 from sklearn.cross_validation import KFold
 import numpy as np
 
 import util, func
 import collections
+
+# For some reason, the test performance on farseeing is not as good as the old hmm_correct script.
+# Use that for test
 
 def dict_inc(dict, key):
     if key in dict:
@@ -33,210 +33,6 @@ def sample_preprocessor(samples, func=None):
         for s in sample_type_list:
             return_list[i].append(func(s))
     return return_list
-
-
-def load_samples_from_db(sensor_id=None):
-    di = util.DatabaseInterface()
-
-    non_lists = []
-    fall_lists = []
-    start, end = 1, 6
-    if sensor_id is not None:
-        start = sensor_id
-        end = sensor_id + 1
-
-    arg_dict = {
-        "sensor_id": 1, # 1 to 5
-        "subject_id": 1, # 1 to 5
-        "label_id": 1, # 1 to 4
-        "freq": 12.5,
-        "db_name": "test_data_fall_1_re",
-    }
-
-    # Four-direction falls (j), five trials each (i)
-    # corrected after refactor: Four-direction falls (i), five trials each (j)
-    for i in range(1, 5):
-        fall_lists.append([])
-        for j in range(1, 6):
-            for k in range(start, end):
-                extended = True
-                arg_dict["db_name"] = "test_data_fall_1_re"
-                arg_dict["sensor_id"] = k
-                arg_dict["label_id"] = i
-                arg_dict["subject_id"] = j
-
-                di.read_from_db(**arg_dict)
-                sample1 = func.sample_around_peak(np.matrix(di.ret_list), 25, 25).tolist()
-                sample2 = []
-                if extended:
-                    arg_dict["db_name"] = "test_data_fall_1b"
-                    di.read_from_db(**arg_dict)
-                    sample2 = func.sample_around_peak(np.matrix(di.ret_list), 25, 25).tolist()
-
-                adding_sample = sample1 + sample2
-                if len(adding_sample) != 0:
-                    fall_lists[i-1].append(adding_sample)
-
-    # Eight ADLs (i), five subjects each (j)
-    for i in range(1, 9):
-        non_lists.append([])
-        for j in range(1, 6):
-            for k in range(start, end):
-                extended = False
-                arg_dict["db_name"] = "test_data_stage_1"
-                arg_dict["sensor_id"] = k
-                arg_dict["label_id"] = i
-                arg_dict["subject_id"] = j
-
-                di.read_from_db(**arg_dict)
-                sample = di.ret_list
-                if len(sample) != 0:
-                    non_lists[i-1].append(sample)
-
-                if extended:
-                    arg_dict["db_name"] = "test_data_stage_1b"
-                    di.read_from_db(**arg_dict)
-                    sample = di.ret_list
-                    if len(sample) != 0:
-                        non_lists[i-1].append(sample)
-
-    return non_lists + fall_lists
-
-def load_samples_from_db_o(sensor_id=None):
-    di = util.DatabaseInterface()
-
-    non_lists = []
-    fall_lists = []
-    start, end = 1, 6
-    if sensor_id is not None:
-        start = sensor_id
-        end = sensor_id + 1
-
-    arg_dict = {
-        "sensor_id": 1, # 1 to 5
-        "subject_id": 1, # 1 to 5
-        "label_id": 1, # 1 to 4
-        "freq": 12.5,
-        "db_name": "test_data_fall_1_re",
-    }
-
-    # Four-direction falls (j), five trials each (i)
-    # corrected after refactor: Four-direction falls (i), five trials each (j)
-    for i in range(1, 5):
-        fall_lists.append([])
-        for j in range(1, 6):
-            for k in range(start, end):
-                extended = True
-                arg_dict["db_name"] = "test_data_fall_1_re"
-                arg_dict["sensor_id"] = k
-                arg_dict["label_id"] = i
-                arg_dict["subject_id"] = j
-
-                di.read_from_db(**arg_dict)
-                sample = func.sample_around_peak(np.matrix(di.ret_list), 25, 25).tolist()
-                if len(sample) != 0:
-                    fall_lists[i-1].append(sample)
-
-                if extended:
-                    arg_dict["db_name"] = "test_data_fall_1b"
-                    di.read_from_db(**arg_dict)
-                    sample = func.sample_around_peak(np.matrix(di.ret_list), 25, 25).tolist()
-                    if len(sample) != 0:
-                        fall_lists[i-1].append(sample)
-
-    # Eight ADLs (i), five subjects each (j)
-    for i in range(1, 9):
-        non_lists.append([])
-        for j in range(1, 6):
-            for k in range(start, end):
-                extended = False
-                arg_dict["db_name"] = "test_data_stage_1"
-                arg_dict["sensor_id"] = k
-                arg_dict["label_id"] = i
-                arg_dict["subject_id"] = j
-
-                di.read_from_db(**arg_dict)
-                sample = di.ret_list
-                if len(sample) != 0:
-                    non_lists[i-1].append(sample)
-
-                if extended:
-                    arg_dict["db_name"] = "test_data_stage_1b"
-                    di.read_from_db(**arg_dict)
-                    sample = di.ret_list
-                    if len(sample) != 0:
-                        non_lists[i-1].append(sample)
-
-    return non_lists + fall_lists
-
-
-def load_samples_from_farseeing():
-    di = util.DatabaseInterface()
-    non_farseeing = load_non_samples_from_farseeing(di.cur, interval=500, before_after=60000)
-    fall_farseeing = load_fall_samples_from_farseeing(di.cur, interval=500)
-    return [non_farseeing] + [fall_farseeing]
-
-def load_fall_samples_from_farseeing(cur, interval=500):
-    sql = 'SELECT subject_id, timestamp FROM test_data_farseeing where label_id != 0;'
-    cur.execute(sql)
-    sub_ts_dict = {}
-    for row in cur:
-        subject_id = int(row[0])
-        timestamp = int(row[1])
-        sub_ts_dict[subject_id] = timestamp
-
-    ret_list = []
-    counter = 0
-    for sub in sub_ts_dict:
-        ret_list.append([])
-        sql = '''SELECT timestamp, x_accel, y_accel, z_accel
-            FROM test_data_farseeing
-            WHERE subject_id = '{0}' AND timestamp >= {1} - {2} AND timestamp < {1} + {2}
-        '''.format(sub, sub_ts_dict[sub], interval)
-        cur.execute(sql)
-        for row in cur:
-            ret_list[counter].append([int(row[1]), int(row[2]), int(row[3])])
-            # ret_list[counter].append([int(row[0]), int(row[1]), int(row[2]), int(row[3])])
-        counter += 1
-
-    return ret_list
-
-def load_non_samples_from_farseeing(cur, interval=500, before_after=60000):
-    sql = 'SELECT subject_id, timestamp FROM test_data_farseeing where label_id != 0;'
-    cur.execute(sql)
-    sub_ts_dict = {}
-    for row in cur:
-        subject_id = int(row[0])
-        timestamp = int(row[1])
-        sub_ts_dict[subject_id] = timestamp
-
-    ret_list = []
-    counter = 0
-    for sub in sub_ts_dict:
-        start_ts = sub_ts_dict[sub] - before_after - interval
-        cur_ts = start_ts
-        end_ts = sub_ts_dict[sub] + before_after - interval
-
-        while cur_ts < end_ts:
-            if cur_ts < sub_ts_dict[sub] and cur_ts + interval * 2 > sub_ts_dict[sub]: # skip segment with fall
-                cur_ts += interval * 2
-                continue
-
-            ret_list.append([])
-            sql = '''SELECT timestamp, x_accel, y_accel, z_accel
-                FROM test_data_farseeing
-                WHERE subject_id = '{0}' AND timestamp >= {1} AND timestamp < {2}
-            '''.format(sub, cur_ts, cur_ts + interval * 2)
-            cur.execute(sql)
-            for row in cur:
-                # ret_list[counter].append([int(row[0]), int(row[1]), int(row[2]), int(row[3])])
-                ret_list[counter].append([int(row[1]), int(row[2]), int(row[3])])
-            counter += 1
-            # if counter % 100 == 0:
-            #     print(counter)
-            cur_ts += interval * 2
-
-    return ret_list
 
 
 def printf(s, fh=None):
@@ -266,18 +62,17 @@ class HMMInstance:
     def load_hmm_model(self, file):
         import pickle
         with open(file, 'rb') as fh:
-            self.hmm_models = pickle.load(file)
+            self.hmm_models = pickle.load(fh)
 
     def dump_hmm_model(self, file):
         import pickle
         with open(file, 'wb') as fh:
-            pickle.dump(self.hmm_models, protocol=3, file=file)
+            pickle.dump(self.hmm_models, protocol=3, file=fh)
 
     def hmm_classifier(self, sample):
         """
         TODO: modify this method to plot spec-sens curve
 
-        :param hmm_models: a list of hmm models
         :param sample: a matrix consisting of a single sample
         :return: an integer indicating the index of the hmm model with the highest probability
         """
@@ -376,6 +171,9 @@ class HMMInstance:
                 model = hmm.GaussianHMM(n_components=self._N)
                 model.fit(concaternated_samples, lengths)
                 self.hmm_models.append(model)
+            # import pickle
+            # with open('c:/hmm_models_spec.pkl', 'wb') as fh:
+            #     pickle.dump(self.hmm_models, protocol=3, file=fh)
         else: # _generalized == True
             gen_lengths = [[], []]
             gen_concat_samples = [[], []]
@@ -391,6 +189,9 @@ class HMMInstance:
                 model = hmm.GaussianHMM(n_components=self._N)
                 model.fit(gen_concat_samples[i], gen_lengths[i])
                 self.hmm_models.append(model)
+            # import pickle
+            # with open('c:/hmm_models_gen.pkl', 'wb') as fh:
+            #     pickle.dump(self.hmm_models, protocol=3, file=fh)
 
     def evaluate(self, test_samples=None):
         self.true_index_list = []
@@ -434,13 +235,13 @@ class HMMInstance:
                     else: # self._generalized == True
                         self.predicted_label_list.append(eval_index)
 
-        print(self.true_index_list)
-        print(self.predicted_index_list)
+        # print(self.true_label_list)
+        # print(self.predicted_label_list)
 
         for true_label, predicted_label in zip(self.true_label_list, self.predicted_label_list):
             self.confusion_matrix[true_label, predicted_label] += 1
 
-        print(self.confusion_matrix)
+        # print(self.confusion_matrix)
 
     def get_prf(self):
         tp = self.confusion_matrix[1, 1]
@@ -530,18 +331,18 @@ class HMMCrossValidator:
 
     def report_stats(self, fh=None, stats='pss'):
         verbose = False
-        total = np.array([0, 0, 0], dtype=np.float64)
-        total_squared = np.array([0, 0, 0], dtype=np.float64)
+        all = []
         n = len(self.hmm_instances)
         for each in self.hmm_instances:
             if stats == 'prf':
                 stat = np.array(each.get_prf())
             elif stats == 'pss':
                 stat = np.array(each.get_pss())
-            total += stat
-            total_squared += stat ** 2
-        avg = total / n
-        stdev = ((total_squared / n - avg ** 2) * n / (n - 1)) ** 0.5
+            all.append(stat)
+        arr_all = np.array(all)
+        avg = np.mean(arr_all, axis=0)
+        stdev = np.std(arr_all, axis=0, ddof=1)
+        output_str = ''
         if verbose:
             if stats == 'prf':
                 output_str = '  Macro Average: Precision: {:.3f} ({:.3f}), Recall: {:.3f} ({:.3f}), F-measure: {:.3f} ({:.3f})'
@@ -558,7 +359,7 @@ class HMMCrossValidator:
         self.report_stats(fh, stats='pss')
 
     def load_samples_from_db(self, sensor_id=None):
-        self.load_samples(load_samples_from_db())
+        self.load_samples(util.load_samples_from_db())
 
 
 class HMMManager:
@@ -584,7 +385,7 @@ class HMMManager:
             self.test = []
 
     def load_samples_from_db(self, sensor_id=None):
-        self.samples = load_samples_from_db()
+        self.samples = util.load_samples_from_db()
 
     def execute_cv(self, n_fold, pos_threshold, fh=None):
         N_range_options = (4, 5) if self._N_range is None else self._N_range
@@ -613,15 +414,12 @@ class HMMManager:
 
     def train_test(self, pos_threshold=1, fh=None):
         N_range_options = (4, 5) if self._N_range is None else self._N_range
-        transform_options = (None, 'g', 'vc') if self._transform is None else self._transform
+        # transform_options = (None, 'g', 'vc') if self._transform is None else self._transform
+        transform_options = ('vc',) if self._transform is None else self._transform
         generalized_options = (False, True) if self._generalized is None else self._generalized
 
-        self.training = load_samples_from_db()
-        print(len(self.training))
-        print([len(x) for x in self.training])
-        self.test = load_samples_from_farseeing()
-        print(len(self.test))
-        print([len(x) for x in self.test])
+        self.training = util.load_samples_from_db()
+        self.test = util.load_samples_from_farseeing()
 
         for generalized in generalized_options:
             # print('Generalized = {}'.format(generalized))
@@ -629,13 +427,20 @@ class HMMManager:
                 # print('  Transform = {}'.format(transform))
                 for N in range(N_range_options[0], N_range_options[1]):
                     # print('    N = {}'.format(N))
-                    print(self._farseeing)
                     hmm = HMMInstance(N, transform, generalized, self._farseeing, self._pos_model_indices, pos_threshold)
                     hmm.load_samples(self.training, self.test)
                     hmm.train_hmm_model()
                     hmm.evaluate()
                     self.hmm_instance.append(hmm)
         self.report_pss(fh)
+
+    def load_model_test(self, pos_threshold=1, fh=None):
+        self.test = util.load_samples_from_farseeing()
+
+        hmm = HMMInstance(4, 'vc', is_generalized=False, is_farseeing=True, pos_model_indices=[8,9,10,11], pos_threshold=1)
+        hmm.load_hmm_model('c:/hmm_models_spec.pkl')
+        hmm.evaluate(self.test)
+        print(hmm.get_pss())
 
     def report_prf(self, fh=None):
         if self.cross_validation:
@@ -665,14 +470,16 @@ class HMMManager:
 
 
 if __name__ == '__main__':
-    # model = HMMManager()
 
-    model = HMMManager(is_farseeing=True, cross_validation=False)
-    with open('c:/sample_output_farseeing.txt', 'w') as fh:
+    model = HMMManager()
+    # model = HMMManager(is_farseeing=True, cross_validation=False)
+    with open('c:/sample_output_10_fold_POOL_correct.txt', 'w') as fh:
         fh.flush()
         pta = (0.9, 0.95, 0.99, 0.995, 1, 1.005, 1.01, 1.05, 1.1)
-        # model.execute_cv_with_varying_pos_threshold(n_fold=10, pos_threshold_array=pta, fh=fh)
-        model.train_test(1, fh=fh)
+        # pta = (1,)
+        model.execute_cv_with_varying_pos_threshold(n_fold=10, pos_threshold_array=pta, fh=fh)
+        # model.train_test(1, fh=fh)
+        # model.load_model_test(1)
     print('Finished')
     # model = HMMCrossValidator()
     # model.load_samples_from_db()
