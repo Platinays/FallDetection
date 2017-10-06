@@ -327,6 +327,14 @@ def load_samples_from_db_o(sensor_id=None):
     return non_lists + fall_lists
 
 
+def printf(s, fh=None):
+    if fh is None:
+        print(s)
+    else:
+        fh.write(s + '\n')
+        fh.flush()
+
+
 def load_samples_from_farseeing():
     di = DatabaseInterface()
     non_farseeing = load_non_samples_from_farseeing(di.cur, interval=500, before_after=60000)

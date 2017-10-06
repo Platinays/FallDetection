@@ -35,14 +35,6 @@ def sample_preprocessor(samples, func=None):
     return return_list
 
 
-def printf(s, fh=None):
-    if fh is None:
-        print(s)
-    else:
-        fh.write(s + '\n')
-        fh.flush()
-
-
 class HMMInstance:
     def __init__(self, N, transform, is_generalized, is_farseeing, pos_model_indices=None, pos_threshold=1, **kwargs):
         if is_generalized == True and not isinstance(pos_model_indices, collections.Iterable):
@@ -350,7 +342,7 @@ class HMMCrossValidator:
                 output_str = '  Macro Average: PPV: {:.3f} ({:.3f}), Sensitivity: {:.3f} ({:.3f}), Specificity: {:.3f} ({:.3f})'
         else:
             output_str = '{:.3f} ' * 6
-        printf(output_str.format(avg[0], stdev[0], avg[1], stdev[1], avg[2], stdev[2]), fh)
+        util.printf(output_str.format(avg[0], stdev[0], avg[1], stdev[1], avg[2], stdev[2]), fh)
 
     def report_prf(self, fh=None):
         self.report_stats(fh, stats='prf')
@@ -445,28 +437,28 @@ class HMMManager:
     def report_prf(self, fh=None):
         if self.cross_validation:
             for each in self.hmm_cv_instances:
-                printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
+                util.printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
                                                                                      each._N, each._pos_threshold), fh)
                 each.report_prf(fh)
         else:
             for each in self.hmm_instance:
-                printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
+                util.printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
                                                                                      each._N, each._pos_threshold), fh)
                 output_str = '{:.3f} ' * 3
-                printf(output_str.format(*each.get_prf()), fh)
+                util.printf(output_str.format(*each.get_prf()), fh)
 
     def report_pss(self, fh=None):
         if self.cross_validation:
             for each in self.hmm_cv_instances:
-                printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
+                util.printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
                                                                                      each._N, each._pos_threshold), fh)
                 each.report_pss(fh)
         else:
             for each in self.hmm_instance:
-                printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
+                util.printf('Generalized: {}, Transform: {}, N: {}, Threshold: {}'.format(each._generalized, each._transform,
                                                                                      each._N, each._pos_threshold), fh)
                 output_str = '{:.3f} ' * 3
-                printf(output_str.format(*each.get_pss()), fh)
+                util.printf(output_str.format(*each.get_pss()), fh)
 
 
 if __name__ == '__main__':
